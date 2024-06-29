@@ -4,21 +4,50 @@ import unicodedata
 import codecs
 from pathlib import Path
 from bs4 import BeautifulSoup
-from typing import Callable, Sequence, List, Mapping, Tuple, Optional
+from typing import Callable, List, Dict, Tuple, Optional
 import re
 from time import sleep
 from random import randint
 from common import utils, Card
 
 
+def parse_flags(s: str) -> List[str]:
+    result: List[str] = list()
+    for field in utils.cleanup(s).split(sep=','):
+        flags = utils.cleanup(field)
+        if len(flags) > 0:
+            result.append(flags)
+    return result
+
+
 def parse_cmdline_args():
-    parser = argparse.ArgumentParser()
+    format_description = '''
+
+#Source file format
+
+Source text file should contain one https://www.pealim.com/ URL per line, 
+optionally followed by one or two of the following flags:
+
+-x/--exclude FLAGS\texclude cards with these flags
+-i/--include FLAGS\tinclude cards with these flags
+
+Inclusion has priority.
+
+        ''' + utils.flags_help_text()
+
+    parser = argparse.ArgumentParser(epilog=format_description, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('in_file', metavar='INFILE', type=Path,
-                        help="input file (should contain one https://www.pealim.com/ URL per line)")
+                        help="input file (see below)")
     parser.add_argument('out_file', metavar='OUTFILE', type=Path,
                         help="output file (ready to be imported into an Anki deck)")
-    parser.add_argument('-t', dest='tags', metavar='TAGS', default=None, type=str,
+    parser.add_argument('-t', '--tags', dest='tags', metavar='TAGS', default=None, type=str,
                         help="add the specified tag(s) to all cards")
+    parser.add_argument('-i', '--include', dest='include_flags', metavar='FLAGS',
+                        default=list(), type=parse_flags,
+                        help="include cards with the specified flags (comma-separated list)")
+    parser.add_argument('-x', '--exclude', dest='exclude_flags', metavar='FLAGS',
+                        default=list(), type=parse_flags,
+                        help="exclude cards with the specified flags (comma-separated list)")
     return parser.parse_args()
 
 
@@ -26,10 +55,10 @@ def remove_niqqudot(word: str) -> str:
     return ''.join([c for c in word if unicodedata.category(c)[0] != 'M'])
 
 
-Handler = Callable[[BeautifulSoup, str], Sequence[Card]]
+Handler = Callable[[BeautifulSoup, str], List[Card]]
 
 
-def handle_id_list(soup: BeautifulSoup, url: str, ids: Mapping[str, str]) -> Sequence[Card]:
+def handle_id_list(soup: BeautifulSoup, url: str, ids: Dict[str, str]) -> List[Card]:
     cards: List[Card] = list()
     ids_found: List[str] = list()
     ids_not_found: List[str] = list()
@@ -54,7 +83,7 @@ def handle_id_list(soup: BeautifulSoup, url: str, ids: Mapping[str, str]) -> Seq
     return cards
 
 
-def handle_verb(soup: BeautifulSoup, url: str) -> Sequence[Card]:
+def handle_verb(soup: BeautifulSoup, url: str) -> List[Card]:
     return handle_id_list(soup, url, ids={
         'INF-L': 'VI',
         'AP-ms': 'VPms', 'AP-fs': 'VPms', 'AP-mp': 'VPms', 'AP-fp': 'VPms',
@@ -68,19 +97,19 @@ def handle_verb(soup: BeautifulSoup, url: str) -> Sequence[Card]:
     })
 
 
-def handle_noun(soup: BeautifulSoup, url: str) -> Sequence[Card]:
+def handle_noun(soup: BeautifulSoup, url: str) -> List[Card]:
     return handle_id_list(soup, url, ids={
         's': 'Nsa', 'p': 'Npa', 'sc': 'Nsc', 'pc': 'Npc'
     })
 
 
-def handle_adjective(soup: BeautifulSoup, url: str) -> Sequence[Card]:
+def handle_adjective(soup: BeautifulSoup, url: str) -> List[Card]:
     return handle_id_list(soup, url, ids={
         'ms-a': 'Ams', 'fs-a': 'Afs', 'mp-a': 'Amp', 'fp-a': 'Afp'
     })
 
 
-handler_map: Sequence[Tuple[re.Pattern, Handler]] = [(re.compile(mask, flags=re.I), handler) for (mask, handler) in [
+handler_map: List[Tuple[re.Pattern, Handler]] = [(re.compile(mask, flags=re.I), handler) for (mask, handler) in [
     (r'\s*Verb\s', handle_verb),
     (r'\s*Noun\s', handle_noun),
     (r'\s*Adjective\s', handle_adjective),
@@ -97,7 +126,8 @@ def get_handler_by_description(description: str) -> Optional[Handler]:
     return None
 
 
-def process_url(session: requests.Session, url: str, additional_tags: str) -> Sequence[Card]:
+def process_url(session: requests.Session, url: str, *,
+                additional_tags: str) -> List[Card]:
     page = session.get(url)
     soup = BeautifulSoup(page.content, "html.parser")
     descriptions = soup.find_all('meta', attrs={'name': 'description'})
@@ -112,33 +142,55 @@ def process_url(session: requests.Session, url: str, additional_tags: str) -> Se
     return list()
 
 
+def build_file_line_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(exit_on_error=False, add_help=False)
+    parser.add_argument('url', type=str)
+    parser.add_argument('-i', '--include', dest='include_flags',
+                        default=list(), type=parse_flags)
+    parser.add_argument('-x', '--exclude', dest='exclude_flags',
+                        default=list(), type=parse_flags)
+    return parser
+
+
+def process_file(in_file: Path, session: requests.Session, *, additional_tags: str,
+                 global_include_flags: List[str],
+                 global_exclude_flags: List[str]) -> List[Card]:
+    parser = build_file_line_parser()
+    all_cards: List[Card] = list()
+    with codecs.open(str(in_file), 'r', encoding='utf_8') as fh_in:
+        for line in fh_in:
+            try:
+                parsed_line, _ = parser.parse_known_args(args=line.split())
+                url: str = parsed_line.url
+                include_flags = global_include_flags + parsed_line.include_flags
+                exclude_flags = global_exclude_flags + parsed_line.exclude_flags
+                seconds = randint(1, 5)
+                print(f"sleeping {seconds}s before reading {url}")
+                sleep(seconds)
+                cards = process_url(session, url, additional_tags=additional_tags)
+                print(f"{len(cards)} cards loaded from {url}")
+                cards_to_add: List[Card] = list()
+                for card in cards:
+                    if card.should_be_saved(include_flags=include_flags, exclude_flags=exclude_flags):
+                        cards_to_add.append(card)
+                print(f"{len(cards_to_add)} cards added")
+                all_cards += cards_to_add
+            except argparse.ArgumentError:
+                pass
+    return all_cards
+
+
 def main() -> None:
     args = parse_cmdline_args()
 
-    additional_tags = ''
-    if args.tags is not None:
-        additional_tags = utils.cleanup(args.tags)
-
-    urls: List[str] = list()
-    print(f"reading URLs from {str(args.in_file)}")
-    with codecs.open(args.in_file, 'r', encoding='utf_8') as fh_in:
-        urls += [url.strip() for url in fh_in if len(url.strip()) > 0]
-    print(f"{len(urls)} URLs read")
-    if len(urls) < 1:
-        return
-
-    all_cards: List[Card] = list()
     session = requests.Session()
-    for url in urls:
-        seconds = randint(1, 5)
-        print(f"sleeping {seconds}s before reading {url}")
-        sleep(seconds)
-        cards = process_url(session, url, additional_tags)
-        print(f"{len(cards)} cards extracted")
-        all_cards += cards
-    print(f"{len(all_cards)} total cards extracted")
-    if len(all_cards) < 1:
-        return
+
+    print(f"reading URLs from {str(args.in_file)}")
+    all_cards = process_file(args.in_file, session,
+                             additional_tags=utils.cleanup(args.tags),
+                             global_include_flags=args.include_flags,
+                             global_exclude_flags=args.exclude_flags)
+    print(f"{len(all_cards)} total cards loaded")
 
     print(f"writing cards to {str(args.out_file)}")
     with codecs.open(args.out_file, 'w', encoding='utf_8') as fh_out:

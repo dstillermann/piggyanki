@@ -1,5 +1,5 @@
 import unicodedata
-from typing import List, Optional
+from typing import List, Optional, Sequence
 import re
 from hashlib import sha256
 import codecs
@@ -16,43 +16,31 @@ class utils:
 
 ## Gender
 
-- m - masculine
-- f - feminine
+m: masculine, f: feminine
 
 ## Number
 
-- p - plural
-- s - single
+p: plural, s: single
 
 ## Person
 
-- 1
-- 2
-- 3
+1, 2, 3
 
 ## Tense & other verb-specific
 
-- I - infinitive
-- P - present
-- S - past
-- F - future
-- ! - imperative
+I: infinitive, P: present, S: past, F: future, !: imperative 
 
 ## Noun-specific
 
-- a - absolute state
-- c - construct state
+a: absolute state, c: construct state
 
-## Parts of speech (now ignored)
+## Parts of speech
 
-- V - verb
-- N - noun
-- A - adjective
-- B - adverb
+V: verb, N: noun, A: adjective, B: adverb
 
 ## Special handling
 
-- . - don't remove niqqudot
+- . (dot) - don't remove niqqudot
         '''
 
     @staticmethod
@@ -205,6 +193,43 @@ class Card:
     def append_tags(self, tags: str) -> "Card":
         self._tags += ' ' + utils.cleanup(tags)
         return self
+
+    def append_flags(self, flags: str) -> "Card":
+        self._flags += ' ' + utils.cleanup(flags)
+        return self
+
+    def has_all_flags(self, flags: str) -> bool:
+        flags = utils.cleanup(flags)
+        if len(flags) < 1:
+            return False
+        for c in flags:
+            if c not in self._flags:
+                return False
+        return True
+
+    def has_some_flags(self, flags: str) -> bool:
+        flags = utils.cleanup(flags)
+        if len(flags) < 1:
+            return False
+        for c in flags:
+            if c in self._flags:
+                return True
+        return False
+
+    def has_flags(self, flags: Sequence[str]) -> bool:
+        if len(flags) < 1:
+            return False
+        for f in flags:
+            if self.has_all_flags(f):
+                return True
+        return False
+
+    def should_be_saved(self, include_flags: Sequence[str], exclude_flags: Sequence[str]) -> bool:
+        if self.has_flags(include_flags):
+            return True
+        if self.has_flags(exclude_flags):
+            return False
+        return True
 
     def calc_uuid_stem(self) -> str:
         allowed_categories = ['L', 'N']
