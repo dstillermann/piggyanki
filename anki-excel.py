@@ -19,8 +19,10 @@ def _parse_cmdline_args():
     ''' + utils.flags_help_text()
 
     parser = argparse.ArgumentParser(epilog=format_description, formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('in_file', metavar='INFILE', type=Path, help="input file")
-    parser.add_argument('out_file', metavar='OUTFILE', type=Path, help="output file")
+    parser.add_argument('in_file', metavar='INFILE', type=Path,
+                        help="input file (see description below)")
+    parser.add_argument('out_file', metavar='OUTFILE', type=Path,
+                        help="output file (ready to be imported into an Anki deck)")
     parser.add_argument('-t', dest='tags', metavar='TAGS', default=None, type=str,
                         help="add the specified tag(s) to all cards")
     return parser.parse_args()
