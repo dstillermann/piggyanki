@@ -143,8 +143,7 @@ def process_url(session: requests.Session, url: str, *,
 
 
 def build_file_line_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(exit_on_error=False, add_help=False)
-    parser.add_argument('url', type=str)
+    parser = argparse.ArgumentParser(prog='*', exit_on_error=False, add_help=False)
     parser.add_argument('-i', '--include', dest='include_flags',
                         default=list(), type=parse_flags)
     parser.add_argument('-x', '--exclude', dest='exclude_flags',
@@ -160,10 +159,16 @@ def process_file(in_file: Path, session: requests.Session, *, additional_tags: s
     with codecs.open(str(in_file), 'r', encoding='utf_8') as fh_in:
         for line in fh_in:
             try:
-                parsed_line, _ = parser.parse_known_args(args=line.split())
-                url: str = parsed_line.url
-                include_flags = global_include_flags + parsed_line.include_flags
-                exclude_flags = global_exclude_flags + parsed_line.exclude_flags
+                args = line.split()
+                if len(args) < 1:
+                    continue
+                url = args[0]
+                include_flags = global_include_flags
+                exclude_flags = global_exclude_flags
+                if len(args) > 1:
+                    parsed_options, _ = parser.parse_known_args(args=args[1:])
+                    include_flags += parsed_options.include_flags
+                    exclude_flags += parsed_options.exclude_flags
                 seconds = randint(1, 5)
                 print(f"sleeping {seconds}s before reading {url}")
                 sleep(seconds)
