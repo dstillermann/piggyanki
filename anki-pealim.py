@@ -43,8 +43,8 @@ def handle_id_list(soup: BeautifulSoup, url: str, ids: Mapping[str, str]) -> Seq
                 ids_found.append(i)
                 continue
         ids_not_found.append(i)
-    if len(ids_found) > 0:
-        print('Found: ' + ', '.join(ids_found))
+    # if len(ids_found) > 0:
+    #    print('Found: ' + ', '.join(ids_found))
     if len(ids_not_found) > 0:
         print('Not found: ' + ', '.join(ids_not_found))
     return cards
@@ -94,7 +94,6 @@ def get_handler_by_description(description: str) -> Optional[Handler]:
 
 
 def process_url(session: requests.Session, url: str) -> Sequence[Card]:
-    print(f"processing {url}")
     page = session.get(url)
     soup = BeautifulSoup(page.content, "html.parser")
     descriptions = soup.find_all('meta', attrs={'name': 'description'})
@@ -124,7 +123,7 @@ def main() -> None:
     session = requests.Session()
     for url in urls:
         seconds = randint(1, 5)
-        print(f"sleeping {seconds}s for {url}")
+        print(f"sleeping {seconds}s before reading {url}")
         sleep(seconds)
         cards = process_url(session, url)
         print(f"{len(cards)} cards extracted")
