@@ -8,13 +8,17 @@ from typing import Callable, Sequence, List, Mapping, Tuple, Optional
 import re
 from time import sleep
 from random import randint
-from common import Card
+from common import utils, Card
 
 
 def parse_cmdline_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('in_file', metavar='INFILE', type=Path, help="input file")
-    parser.add_argument('out_file', metavar='OUTFILE', type=Path, help="output file")
+    parser.add_argument('in_file', metavar='INFILE', type=Path,
+                        help="input file (should contain one https://www.pealim.com/ URL per line)")
+    parser.add_argument('out_file', metavar='OUTFILE', type=Path,
+                        help="output file (ready to be imported into an Anki deck)")
+    parser.add_argument('-t', dest='tags', metavar='TAGS', default=None, type=str,
+                        help="add the specified tag(s) to all cards")
     return parser.parse_args()
 
 
@@ -93,7 +97,7 @@ def get_handler_by_description(description: str) -> Optional[Handler]:
     return None
 
 
-def process_url(session: requests.Session, url: str) -> Sequence[Card]:
+def process_url(session: requests.Session, url: str, additional_tags: str) -> Sequence[Card]:
     page = session.get(url)
     soup = BeautifulSoup(page.content, "html.parser")
     descriptions = soup.find_all('meta', attrs={'name': 'description'})
@@ -102,7 +106,7 @@ def process_url(session: requests.Session, url: str) -> Sequence[Card]:
             if 'content' in description.attrs:
                 handler = get_handler_by_description(description.attrs['content'])
                 if handler is not None:
-                    return handler(soup, url)
+                    return [card.append_tags(additional_tags) for card in handler(soup, url)]
                 else:
                     print(f"No handler found for {url}")
     return list()
@@ -110,6 +114,10 @@ def process_url(session: requests.Session, url: str) -> Sequence[Card]:
 
 def main() -> None:
     args = parse_cmdline_args()
+
+    additional_tags = ''
+    if args.tags is not None:
+        additional_tags = utils.cleanup(args.tags)
 
     urls: List[str] = list()
     print(f"reading URLs from {str(args.in_file)}")
@@ -125,7 +133,7 @@ def main() -> None:
         seconds = randint(1, 5)
         print(f"sleeping {seconds}s before reading {url}")
         sleep(seconds)
-        cards = process_url(session, url)
+        cards = process_url(session, url, additional_tags)
         print(f"{len(cards)} cards extracted")
         all_cards += cards
     print(f"{len(all_cards)} total cards extracted")

@@ -202,6 +202,10 @@ class Card:
     def tags(self) -> str:
         return self._tags
 
+    def append_tags(self, tags: str) -> "Card":
+        self._tags += ' ' + utils.cleanup(tags)
+        return self
+
     def calc_uuid_stem(self) -> str:
         allowed_categories = ['L', 'N']
         if '.' not in self._flags:
