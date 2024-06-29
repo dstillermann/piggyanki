@@ -86,7 +86,7 @@ def handle_id_list(soup: BeautifulSoup, url: str, ids: Dict[str, str]) -> List[C
 def handle_verb(soup: BeautifulSoup, url: str) -> List[Card]:
     return handle_id_list(soup, url, ids={
         'INF-L': 'VI',
-        'AP-ms': 'VPms', 'AP-fs': 'VPms', 'AP-mp': 'VPms', 'AP-fp': 'VPms',
+        'AP-ms': 'VPms', 'AP-fs': 'VPms', 'AP-mp': 'VPms', 'AP-fp': 'VPfs',
         'PERF-1s': 'VS1s', 'PERF-1p': 'VS1p',
         'PERF-2ms': 'VS2ms', 'PERF-2fs': 'VS2fs', 'PERF-2mp': 'VS2mp', 'PERF-2fp': 'VS2fp',
         'PERF-3ms': 'VS3ms', 'PERF-3fs': 'VS3ms', 'PERF-3p': 'VS3p',
