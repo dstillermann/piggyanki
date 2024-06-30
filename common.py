@@ -246,13 +246,7 @@ class Card:
         return True
 
     def calc_uuid_stem(self) -> str:
-        allowed_categories = ['L']
-        if '.' not in self._flags:
-            allowed_categories.append('M')
-        word = utils.remove_html(self._word)
-        if len(self._source) > 0:
-            word += '|' + self._source
-        rep = ''.join([c for c in word if unicodedata.category(c)[0] in allowed_categories])
+        rep = utils.remove_niqqudot(self._word, self._flags + '.')
         if len(rep) > 0:
             return sha256(codecs.encode(rep, encoding='utf-8')).hexdigest()
         else:
