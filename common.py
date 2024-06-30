@@ -220,11 +220,22 @@ class Card:
         return False
 
     def should_be_saved(self, include_flags: Sequence[str], exclude_flags: Sequence[str]) -> bool:
-        if self.has_flags(include_flags):
+        include_given = len(include_flags) > 0
+        exclude_given = len(exclude_flags) > 0
+        # No restrictions
+        if not include_given and not exclude_given:
             return True
-        if self.has_flags(exclude_flags):
-            return False
-        return True
+        # If only inclusion is specified, only save this card if it has any included flags.
+        elif include_given and not exclude_given:
+            return self.has_flags(include_flags)
+        # If only exclusion is specified, save this card unless it has any excluded flags.
+        elif not include_given and exclude_given:
+            return not self.has_flags(exclude_flags)
+        # Both inclusion and exclusion is specified. Inclusion has priority.
+        elif self.has_flags(include_flags):
+            return True
+        else:
+            return not self.has_flags(exclude_flags)
 
     def calc_uuid_stem(self) -> str:
         rep = utils.remove_niqqudot(self._word, self._flags + '.')
