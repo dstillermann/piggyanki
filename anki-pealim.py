@@ -1,4 +1,5 @@
 from requests import Session, RequestException
+from copy import copy
 import argparse
 import codecs
 from pathlib import Path
@@ -162,8 +163,8 @@ def process_file(in_file: Path, session: Session, *, additional_tags: str,
                 if len(args) < 1:
                     continue
                 url = args[0]
-                include_flags = global_include_flags
-                exclude_flags = global_exclude_flags
+                include_flags = copy(global_include_flags)
+                exclude_flags = copy(global_exclude_flags)
                 if len(args) > 1:
                     parsed_options, _ = parser.parse_known_args(args=args[1:])
                     include_flags += parsed_options.include_flags
