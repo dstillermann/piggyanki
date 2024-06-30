@@ -3,7 +3,7 @@ from copy import copy
 import argparse
 import codecs
 from pathlib import Path
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, PageElement
 from typing import Callable, List, Dict, Tuple, Optional
 import re
 from time import sleep
@@ -56,26 +56,23 @@ Handler = Callable[[BeautifulSoup, str], List[Card]]
 
 def handle_id_list(soup: BeautifulSoup, url: str, ids: Dict[str, str]) -> List[Card]:
     cards: List[Card] = list()
-    ids_found: List[str] = list()
-    ids_not_found: List[str] = list()
+    entries_not_found: List[str] = list()
     for i, flags in ids.items():
-        tag = soup.find(id=i)
-        if tag is not None:
-            word = tag.find(attrs={"class": "menukad"})
-            translation = tag.find(attrs={"class": "meaning"})
-            pronunciation = tag.find(attrs={"class": "transcription"})
-            if word is not None or translation is not None or pronunciation is not None:
-                cards.append(Card(word=str(word).strip() if word is not None else '',
-                                  translation=str(translation).strip() if translation is not None else '',
-                                  pronunciation=str(pronunciation).strip() if pronunciation is not None else '',
+        e_root = soup.find(id=i)
+        if e_root is not None:
+            e_word = e_root.find('span', attrs={"class": "menukad"})
+            e_translation = e_root.find(attrs={"class": "meaning"})
+            e_pronunciation = e_root.find(attrs={"class": "transcription"})
+            n_found_elements = len([e for e in [e_word, e_translation, e_pronunciation] if e is not None])
+            if n_found_elements > 1:
+                cards.append(Card(word=str(e_word).strip() if e_word is not None else '',
+                                  translation=str(e_translation).strip() if e_translation is not None else '',
+                                  pronunciation=str(e_pronunciation).strip() if e_pronunciation is not None else '',
                                   source=url, flags=flags))
-                ids_found.append(i)
                 continue
-        ids_not_found.append(i)
-    # if len(ids_found) > 0:
-    #    print('Found: ' + ', '.join(ids_found))
-    if len(ids_not_found) > 0:
-        print('Not found: ' + ', '.join(ids_not_found))
+        entries_not_found.append(flags)
+    if len(entries_not_found) > 0:
+        print('Not found: ' + ', '.join(entries_not_found))
     return cards
 
 
@@ -105,13 +102,34 @@ def handle_adjective(soup: BeautifulSoup, url: str) -> List[Card]:
     })
 
 
+def handle_adverb(soup: BeautifulSoup, url: str) -> List[Card]:
+    cards: List[Card] = list()
+    e_translation_headers: List[PageElement] = list()
+    for text in ['Meaning', 'Перевод']:
+        e_translation_headers += soup.find_all('h3', string=text)
+    for e_translation_header in e_translation_headers:
+        e_translation = e_translation_header.next_sibling
+        e_root = e_translation_header.parent
+        e_word = e_root.find('span', attrs={"class": "menukad"})
+        e_pronunciation = e_root.find(attrs={"class": "transcription"})
+        n_found_elements = len([e for e in [e_word, e_translation, e_pronunciation] if e is not None])
+        if n_found_elements > 1:
+            cards.append(Card(word=str(e_word).strip() if e_word is not None else '',
+                              translation=str(e_translation_header).strip() if e_translation_header is not None else '',
+                              pronunciation=str(e_pronunciation).strip() if e_pronunciation is not None else '',
+                              source=url, flags='B'))
+    return cards
+
+
 handler_map: List[Tuple[re.Pattern, Handler]] = [(re.compile(mask, flags=re.I), handler) for (mask, handler) in [
-    (r'\s*Verb\s', handle_verb),
-    (r'\s*Noun\s', handle_noun),
-    (r'\s*Adjective\s', handle_adjective),
-    (r'\s*Глагол\s', handle_verb),
-    (r'\s*Существительное\s', handle_noun),
-    (r'\s*Прилагательное\s', handle_adjective),
+    (r'^\s*Verb\s', handle_verb),
+    (r'^\s*Noun\s', handle_noun),
+    (r'^\s*Adjective\s', handle_adjective),
+    (r'^\s*Adverb\s', handle_adverb),
+    (r'^\s*Глагол\s', handle_verb),
+    (r'^\s*Существительное\s', handle_noun),
+    (r'^\s*Прилагательное\s', handle_adjective),
+    (r'^\s*Наречие\s', handle_adverb)
 ]]
 
 
@@ -197,11 +215,14 @@ def main() -> None:
                              global_exclude_flags=args.exclude_flags)
     print(f"{len(all_cards)} total cards loaded")
 
-    print(f"writing cards to {str(args.out_file)}")
-    with codecs.open(args.out_file, 'w', encoding='utf_8') as fh_out:
-        Card.save_header(fh_out)
-        for card in all_cards:
-            card.save(fh_out)
+    if len(all_cards) > 0:
+        print(f"writing cards to {str(args.out_file)}")
+        with codecs.open(args.out_file, 'w', encoding='utf_8') as fh_out:
+            Card.save_header(fh_out)
+            for card in all_cards:
+                card.save(fh_out)
+    else:
+        print('No cards loaded, nothing to write!')
 
     print('all done!')
 

@@ -80,15 +80,16 @@ def main():
 
     print(f"reading file {str(args.in_file)}")
     all_cards = read_source_file(args.in_file, additional_tags)
-    print(f"{len(all_cards)} total cards read")
-    if len(all_cards) < 1:
-        return
+    print(f"{len(all_cards)} total cards loaded")
 
-    print(f"writing cards to {str(args.out_file)}")
-    with codecs.open(args.out_file, 'w', encoding='utf_8') as fh_out:
-        Card.save_header(fh_out)
-        for card in all_cards:
-            card.save(fh_out)
+    if len(all_cards) > 0:
+        print(f"writing cards to {str(args.out_file)}")
+        with codecs.open(args.out_file, 'w', encoding='utf_8') as fh_out:
+            Card.save_header(fh_out)
+            for card in all_cards:
+                card.save(fh_out)
+    else:
+        print('No cards loaded, nothing to write!')
 
     print('all done!')
 
