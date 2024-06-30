@@ -58,7 +58,7 @@ def read_source_file(path: Path, additional_tags: str) -> Sequence[Card]:
                           pronunciation=_field_to_str(r, 'Pronunciation'),
                           flags=_field_to_str(r, 'Flags'),
                           tags=_field_to_str(r, 'Tags') + ' ' + additional_tags,
-                          source=f"{path.name}#{i}"
+                          source=f"{path.name}"
                           ))
 
     return cards

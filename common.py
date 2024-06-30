@@ -247,6 +247,8 @@ class Card:
 
     def calc_uuid_stem(self) -> str:
         rep = utils.remove_niqqudot(self._word, self._flags + '.')
+        if len(self._source) > 0:
+            rep += '|' + self._source
         if len(rep) > 0:
             return sha256(codecs.encode(rep, encoding='utf-8')).hexdigest()
         else:

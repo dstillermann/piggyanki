@@ -67,7 +67,7 @@ def handle_id_list(soup: BeautifulSoup, url: str, ids: Dict[str, str]) -> List[C
                 cards.append(Card(word=str(word).strip() if word is not None else '',
                                   translation=str(translation).strip() if translation is not None else '',
                                   pronunciation=str(pronunciation).strip() if pronunciation is not None else '',
-                                  source=url + '#' + i, flags=flags))
+                                  source=url, flags=flags))
                 ids_found.append(i)
                 continue
         ids_not_found.append(i)
