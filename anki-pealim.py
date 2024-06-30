@@ -1,4 +1,4 @@
-import requests
+from requests import Session, RequestException
 import argparse
 import codecs
 from pathlib import Path
@@ -121,9 +121,13 @@ def get_handler_by_description(description: str) -> Optional[Handler]:
     return None
 
 
-def process_url(session: requests.Session, url: str, *,
+def process_url(session: Session, url: str, *,
                 additional_tags: str) -> List[Card]:
-    page = session.get(url)
+    try:
+        page = session.get(url)
+    except RequestException as e:
+        print(f"Error reading {url}: {str(e)}")
+        return list()
     soup = BeautifulSoup(page.content, "html.parser")
     descriptions = soup.find_all('meta', attrs={'name': 'description'})
     if len(descriptions) > 0:
@@ -146,7 +150,7 @@ def build_file_line_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def process_file(in_file: Path, session: requests.Session, *, additional_tags: str,
+def process_file(in_file: Path, session: Session, *, additional_tags: str,
                  global_include_flags: List[str],
                  global_exclude_flags: List[str]) -> List[Card]:
     parser = build_file_line_parser()
@@ -183,7 +187,7 @@ def process_file(in_file: Path, session: requests.Session, *, additional_tags: s
 def main() -> None:
     args = parse_cmdline_args()
 
-    session = requests.Session()
+    session = Session()
 
     print(f"reading URLs from {str(args.in_file)}")
     all_cards = process_file(args.in_file, session,
