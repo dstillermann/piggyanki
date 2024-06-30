@@ -11,7 +11,7 @@ def _parse_cmdline_args():
 Source Excel/CSV file columns
 -----------------------------
 
-- Word: Hebrew word (niqqudot will be stripped unless a dot flag is specified, see below)
+- Word: Hebrew word (nekudot will be stripped unless a dot flag is specified, see below)
 - Translation
 - Pronunciation: use stars to indicate stress (e.g. peal*i*m)
 - Flags: see below

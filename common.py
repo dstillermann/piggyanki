@@ -21,7 +21,7 @@ Available flags
 [Tense & other verb-specific] I: infinitive, P: present, S: past, F: future, !: imperative 
 [Noun-specific] a: absolute state, c: construct state
 [Parts of speech] V: verb, N: noun, A: adjective, B: adverb
-[Special handling during manual import] . (dot) - don't remove niqqudot
+[Special handling during manual import] . (dot) - don't remove nekudot
         '''
 
     @staticmethod
@@ -91,12 +91,12 @@ Available flags
         return utils.cleanup(str(soup.string))
 
     @staticmethod
-    def remove_niqqudot(word: Optional[str], flags: Optional[str] = None) -> str:
+    def remove_nekudot(word: Optional[str], flags: Optional[str] = None) -> str:
         word = utils.remove_html(word)
         # Start by leaving only letters and markings
         word = ''.join([c for c in word if unicodedata.category(c)[0] in ['L', 'M']])
         if flags is not None:
-            # If flags explicitly require leaving niqqudot in place, do nothing.
+            # If flags explicitly require leaving nekudot in place, do nothing.
             if '.' not in flags:
                 naked_word = ''.join([c for c in word if unicodedata.category(c)[0] == 'L'])
                 # Now a very Hebrew-specific stuff. For 2nd person past tense verbs,
@@ -115,7 +115,7 @@ Available flags
 
     @staticmethod
     def dress_word(word: Optional[str], flags: str) -> str:
-        word = utils.remove_niqqudot(word, flags)
+        word = utils.remove_nekudot(word, flags)
         if len(word) == 0:
             return word
         style = 'font-size:24pt;'
@@ -238,7 +238,7 @@ class Card:
             return not self.has_flags(exclude_flags)
 
     def calc_uuid_stem(self) -> str:
-        rep = utils.remove_niqqudot(self._word, self._flags + '.')
+        rep = utils.remove_nekudot(self._word, self._flags + '.')
         if len(self._source) > 0:
             rep += '|' + self._source
         if len(rep) > 0:
