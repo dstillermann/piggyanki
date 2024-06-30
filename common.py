@@ -105,22 +105,36 @@ V: verb, N: noun, A: adjective, B: adverb
             return ''
 
     @staticmethod
-    def remove_niqqudot(word: Optional[str]) -> str:
-        if word is not None:
-            return ''.join([c for c in word if unicodedata.category(c)[0] != 'M'])
-        else:
-            return ''
-
-    @staticmethod
     def remove_html(content: str) -> str:
         soup = BeautifulSoup(content, "html.parser")
         return utils.cleanup(str(soup.string))
 
     @staticmethod
+    def remove_niqqudot(word: Optional[str], flags: Optional[str] = None) -> str:
+        word = utils.remove_html(word)
+        # Start by leaving only letters and markings
+        word = ''.join([c for c in word if unicodedata.category(c)[0] in ['L', 'M']])
+        if flags is not None:
+            # If flags explicitly require leaving niqqudot in place, do nothing.
+            if '.' not in flags:
+                naked_word = ''.join([c for c in word if unicodedata.category(c)[0] == 'L'])
+                # Now a very Hebrew-specific stuff. For 2nd person past tense verbs,
+                # leave the very last marking in place.
+                if '2' in flags and 'V' in flags and 'S' in flags:
+                    if len(word) > 0:
+                        last_char = word[-1]
+                        if unicodedata.category(last_char)[0] == 'M':
+                            word = naked_word + last_char
+                        else:
+                            word = naked_word
+                # Otherwise, leave only the letters.
+                else:
+                    word = naked_word
+        return word
+
+    @staticmethod
     def dress_word(word: Optional[str], flags: str) -> str:
-        word = utils.cleanup(word)
-        if '.' not in flags:
-            word = utils.remove_niqqudot(word)
+        word = utils.remove_niqqudot(word, flags)
         if len(word) == 0:
             return word
         style = 'font-size:24pt;'
@@ -232,7 +246,7 @@ class Card:
         return True
 
     def calc_uuid_stem(self) -> str:
-        allowed_categories = ['L', 'N']
+        allowed_categories = ['L']
         if '.' not in self._flags:
             allowed_categories.append('M')
         word = utils.remove_html(self._word)

@@ -1,6 +1,5 @@
 import requests
 import argparse
-import unicodedata
 import codecs
 from pathlib import Path
 from bs4 import BeautifulSoup
@@ -49,10 +48,6 @@ Inclusion has priority.
                         default=list(), type=parse_flags,
                         help="exclude cards with the specified flags (comma-separated list)")
     return parser.parse_args()
-
-
-def remove_niqqudot(word: str) -> str:
-    return ''.join([c for c in word if unicodedata.category(c)[0] != 'M'])
 
 
 Handler = Callable[[BeautifulSoup, str], List[Card]]
