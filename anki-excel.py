@@ -8,14 +8,14 @@ from common import utils, Card
 
 def _parse_cmdline_args():
     format_description = '''
-    
-# Source Excel/CSV file columns:
+Source Excel/CSV file columns
+-----------------------------
 
-- Word
+- Word: Hebrew word (niqqudot will be stripped unless a dot flag is specified, see below)
 - Translation
-- Pronunciation
-- Flags
-
+- Pronunciation: use stars to indicate stress (e.g. peal*i*m)
+- Flags: see below
+- Tags: add to each card produced from this line
     ''' + utils.flags_help_text()
 
     parser = argparse.ArgumentParser(epilog=format_description, formatter_class=argparse.RawTextHelpFormatter)

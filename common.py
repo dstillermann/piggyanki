@@ -12,35 +12,16 @@ class utils:
     @staticmethod
     def flags_help_text() -> str:
         return '''
-# Available flags:
+Available flags
+---------------
 
-## Gender
-
-m: masculine, f: feminine
-
-## Number
-
-p: plural, s: single
-
-## Person
-
-1, 2, 3
-
-## Tense & other verb-specific
-
-I: infinitive, P: present, S: past, F: future, !: imperative 
-
-## Noun-specific
-
-a: absolute state, c: construct state
-
-## Parts of speech
-
-V: verb, N: noun, A: adjective, B: adverb
-
-## Special handling
-
-- . (dot) - don't remove niqqudot
+[Gender] m: masculine, f: feminine
+[Number] p: plural, s: single
+[Person] 1: 1st, 2: 2nd, 3: 3rd
+[Tense & other verb-specific] I: infinitive, P: present, S: past, F: future, !: imperative 
+[Noun-specific] a: absolute state, c: construct state
+[Parts of speech] V: verb, N: noun, A: adjective, B: adverb
+[Special handling during manual import] . (dot) - don't remove niqqudot
         '''
 
     @staticmethod

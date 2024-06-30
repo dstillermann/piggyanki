@@ -22,17 +22,17 @@ def parse_flags(s: str) -> List[str]:
 
 def parse_cmdline_args():
     format_description = '''
-
-#Source file format
+Source file format
+------------------
 
 Source text file should contain one https://www.pealim.com/ URL per line, 
-optionally followed by one or two of the following flags:
+optionally followed by one or two of the following options:
 
 -x/--exclude FLAGS\texclude cards with these flags
 -i/--include FLAGS\tinclude cards with these flags
+-t/--tags TAGS\tadd these tags to each card produced from this line
 
 Inclusion has priority.
-
         ''' + utils.flags_help_text()
 
     parser = argparse.ArgumentParser(epilog=format_description, formatter_class=argparse.RawTextHelpFormatter)
@@ -166,6 +166,8 @@ def build_file_line_parser() -> argparse.ArgumentParser:
                         default=list(), type=parse_flags)
     parser.add_argument('-x', '--exclude', dest='exclude_flags',
                         default=list(), type=parse_flags)
+    parser.add_argument('-t', '--tags', dest='tags',
+                        default=None, type=str)
     return parser
 
 
@@ -183,14 +185,16 @@ def process_file(in_file: Path, session: Session, *, additional_tags: str,
                 url = args[0]
                 include_flags = copy(global_include_flags)
                 exclude_flags = copy(global_exclude_flags)
+                line_tags = ''
                 if len(args) > 1:
                     parsed_options, _ = parser.parse_known_args(args=args[1:])
                     include_flags += parsed_options.include_flags
                     exclude_flags += parsed_options.exclude_flags
+                    line_tags = utils.cleanup(parsed_options.tags)
                 seconds = randint(1, 5)
                 print(f"sleeping {seconds}s before reading {url}")
                 sleep(seconds)
-                cards = process_url(session, url, additional_tags=additional_tags)
+                cards = process_url(session, url, additional_tags=(additional_tags + ' ' + line_tags))
                 print(f"{len(cards)} cards loaded from {url}")
                 cards_to_add: List[Card] = list()
                 for card in cards:
