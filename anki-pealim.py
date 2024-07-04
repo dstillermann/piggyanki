@@ -115,7 +115,7 @@ def handle_adverb(soup: BeautifulSoup, url: str) -> List[Card]:
         n_found_elements = len([e for e in [e_word, e_translation, e_pronunciation] if e is not None])
         if n_found_elements > 1:
             cards.append(Card(word=str(e_word).strip() if e_word is not None else '',
-                              translation=str(e_translation_header).strip() if e_translation_header is not None else '',
+                              translation=str(e_translation).strip() if e_translation is not None else '',
                               pronunciation=str(e_pronunciation).strip() if e_pronunciation is not None else '',
                               source=url, flags='B'))
     return cards
